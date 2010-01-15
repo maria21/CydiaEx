@@ -1,5 +1,5 @@
-#include <UICaboodle/BrowserView.h>
-#include <UICaboodle/UCLocalize.h>
+#include "BrowserView.h"
+#include "UCLocalize.h"
 
 #import <QuartzCore/CALayer.h>
 // XXX: fix the minimum requirement
@@ -309,7 +309,9 @@ static CFArrayRef (*$GSSystemGetCapability)(CFStringRef);
     subrect.size.height -= extra;
     [scroller_ setScrollerIndicatorSubrect:subrect];
 
-    NSSize visible(NSMakeSize(subrect.size.width, subrect.size.height));
+    struct _NSSize visible;
+	visible.width = subrect.size.width;
+	visible.height = subrect.size.height;
     [webview_ setValue:[NSValue valueWithSize:visible] forGestureAttribute:UIGestureAttributeVisibleSize];
 
     CGSize size(size_);
