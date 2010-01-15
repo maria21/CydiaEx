@@ -4,7 +4,7 @@
 #import "Protocols.h"
 #import "CydiaObject.h"
 #import "CYActionSheet.h"
-#import "CYBook.h"
+#import "CYBook.h" 
 #import "CydiaURLProtocol.h"
 #import "ProgressData.h"
 #import "Progress.h"
