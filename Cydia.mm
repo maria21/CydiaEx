@@ -4113,7 +4113,9 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
     UIProgressBar *progress_;
     UITextView *output_;
     UITextLabel *status_;
+    UITextLabel *header_;
     UIPushButton *close_;
+    UIActivityIndicatorView *activity_;
     id delegate_;
     BOOL running_;
     SHA1SumValue springlist_;
@@ -4151,8 +4153,10 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
     [navbar_ release];
     [progress_ release];
     [output_ release];
+    [activity_ release];
     [status_ release];
     [close_ release];
+    [header_ release];
     if (title_ != nil)
         [title_ release];
     [super dealloc];
@@ -4169,18 +4173,21 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
         overlay_ = [[UIView alloc] initWithFrame:[transition_ bounds]];
 
         background_ = [[UIView alloc] initWithFrame:[self bounds]];
-        [background_ setBackgroundColor:[UIColor blackColor]];
+        [background_ setBackgroundColor:[UIColor viewFlipsideBackgroundColor]];
         [self addSubview:background_];
 
         [self addSubview:transition_];
+		
+        BOOL showNavbar = NO;
 
         CGSize navsize = [UINavigationBar defaultSize];
         CGRect navrect = {{0, 0}, navsize};
 
         navbar_ = [[UINavigationBar alloc] initWithFrame:navrect];
-        [overlay_ addSubview:navbar_];
+        if (showNavbar)
+            [overlay_ addSubview:navbar_];
 
-        [navbar_ setBarStyle:1];
+        [navbar_ setBarStyle:UIBarStyleBlackTranslucent];
         [navbar_ setDelegate:self];
 
         UINavigationItem *navitem = [[[UINavigationItem alloc] initWithTitle:nil] autorelease];
@@ -4191,15 +4198,15 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
 
         CGRect prgrect = {{
             (bounds.size.width - prgsize.width) / 2,
-            bounds.size.height - prgsize.height - 20
+            (showNavbar ? navrect.size.height + 105 : 105)
         }, prgsize};
 
-        progress_ = [[UIProgressBar alloc] initWithFrame:prgrect];
-        [progress_ setStyle:0];
+        progress_ = [[UIProgressView alloc] initWithFrame:prgrect];
+        [progress_ setProgressViewStyle:1];
 
         status_ = [[UITextLabel alloc] initWithFrame:CGRectMake(
             10,
-            bounds.size.height - prgsize.height - 50,
+            (showNavbar ? navrect.size.height + 75 : 75),
             bounds.size.width - 20,
             24
         )];
@@ -4209,12 +4216,29 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
 
         [status_ setCentersHorizontally:YES];
         //[status_ setFont:font];
+		
+        header_ = [[UITextLabel alloc] initWithFrame:CGRectMake(
+                10,
+                (showNavbar ? navrect.size.height + 25 : 25),
+                bounds.size.width - 20,
+                35
+        )];
+	
+        [header_ setFont:[UIFont boldSystemFontOfSize:30.0f]];
+        [header_ setColor:[UIColor whiteColor]];
+        [header_ setBackgroundColor:[UIColor clearColor]];
+        [header_ setShadowColor:[UIColor blackColor]];
+		[header_ setShadowOffset:CGSizeMake(0.0f, 2.0f)];
+		
+        [header_ setCentersHorizontally:YES];
+		
+        [overlay_ addSubview:header_];
 
         output_ = [[UITextView alloc] initWithFrame:CGRectMake(
             10,
-            navrect.size.height + 20,
+            (showNavbar ? navrect.size.height + 116 : 116),
             bounds.size.width - 20,
-            bounds.size.height - navsize.height - 62 - navrect.size.height
+            bounds.size.height - (showNavbar ? navrect.size.height : 0) + 116 - 60
         )];
 
         //[output_ setTextFont:@"Courier New"];
@@ -4228,6 +4252,12 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
         [output_ setEditable:NO];
 
         [overlay_ addSubview:output_];
+		
+        activity_ = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:0];
+        [activity_ setFrame:CGRectMake((bounds.size.width / 2) - (37 / 2), bounds.size.height - 70, 37, 37)];
+        [activity_ startAnimating];
+		
+        [overlay_ addSubview:activity_];
 
         close_ = [[UIPushButton alloc] initWithFrame:CGRectMake(
             10,
@@ -4282,41 +4312,15 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
 
 - (void) closeButtonPushed {
     running_ = NO;
-
-    switch (Finish_) {
-        case 0:
-            [self resetView];
-        break;
-
-        case 1:
-            [delegate_ terminateWithSuccess];
-            /*if ([delegate_ respondsToSelector:@selector(suspendWithAnimation:)])
-                [delegate_ suspendWithAnimation:YES];
-            else
-                [delegate_ suspend];*/
-        break;
-
-        case 2:
-            system("launchctl stop com.apple.SpringBoard");
-        break;
-
-        case 3:
-            system("launchctl unload "SpringBoard_"; launchctl load "SpringBoard_);
-        break;
-
-        case 4:
-            system("reboot");
-        break;
-    }
+	
+	switch (Finish_) {
+		case 1: [delegate_ terminateWithSuccess]; break;
+		default: [self resetView]; break;
+	}
 }
 
 - (void) _retachThread {
     UINavigationItem *item([navbar_ topItem]);
-    [item setTitle:UCLocalize("COMPLETE")];
-
-    [overlay_ addSubview:close_];
-    [progress_ removeFromSuperview];
-    [status_ removeFromSuperview];
 
     [database_ popErrorWithTitle:title_];
     [delegate_ progressViewIsComplete:self];
@@ -4346,14 +4350,30 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
                 Finish_ = 3;
         }
     }
-
+	
+	[item setTitle:UCLocalize("COMPLETE")];
+    [header_ setText:UCLocalize("COMPLETE")];
+	
     switch (Finish_) {
-        case 0: [close_ setTitle:UCLocalize("RETURN_TO_CYDIA")]; break;
         case 1: [close_ setTitle:UCLocalize("CLOSE_CYDIA")]; break;
-        case 2: [close_ setTitle:UCLocalize("RESTART_SPRINGBOARD")]; break;
-        case 3: [close_ setTitle:UCLocalize("RELOAD_SPRINGBOARD")]; break;
-        case 4: [close_ setTitle:UCLocalize("REBOOT_DEVICE")]; break;
+		default: [close_ setTitle:UCLocalize("RETURN_TO_CYDIA")]; break;
     }
+	
+	[overlay_ addSubview:close_];
+    [activity_ removeFromSuperview];
+	
+	if (Finish_ > 1) {
+		NSString *text;
+		switch (Finish_) {
+			case 2: text = UCLocalize("RESTART_SPRINGBOARD"); break;
+			case 3: text = UCLocalize("RELOAD_SPRINGBOARD"); break;
+			case 4: text = UCLocalize("REBOOT_DEVICE"); break;
+		}
+		
+		UIAlertView *alertView = [[UIAlertView alloc] initWithTitle:@"Cydia" message:text delegate:nil cancelButtonTitle:nil otherButtonTitles:UCLocalize("OKAY"), nil];
+		[alertView show];
+		[alertView autorelease];
+	}
 
 #define ListCache_ "/User/Library/Caches/com.apple.mobile.installation.plist"
 #define IconCache_ "/User/Library/Caches/com.apple.springboard-imagecache-icons.plist"
@@ -4425,6 +4445,7 @@ bool DepSubstrate(const pkgCache::VerIterator &iterator) {
 
     UINavigationItem *item([navbar_ topItem]);
     [item setTitle:title_];
+    [header_ setText:title_];
 
     [status_ setText:nil];
     [output_ setText:@""];
@@ -8282,6 +8303,22 @@ static _finline void _setHomePage(Cydia *self) {
     PrintTimes();
 
     _setHomePage(self);
+}
+
+- (void) applicationWillTerminate:(UIApplication *)application {
+    switch (Finish_) {
+        case 2:
+            system("launchctl stop com.apple.SpringBoard");
+			break;
+			
+        case 3:
+            system("launchctl unload "SpringBoard_"; launchctl load "SpringBoard_);
+			break;
+			
+        case 4:
+            system("reboot");
+			break;
+    }	
 }
 
 - (void) showKeyboard:(BOOL)show {
