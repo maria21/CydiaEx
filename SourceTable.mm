@@ -348,11 +348,13 @@
 	
     int count([sources_ count]);
 	int i = 0;
+	offset_ = 0;
     for (i = 0; i != count; i++) {
-		offset_++;
         Source *source = [sources_ objectAtIndex:i];
         if ([source record] == nil)
             break;
+		else
+			offset_++;
     }
 	
     [list_ reloadData];
