@@ -13,9 +13,6 @@
 }
 
 - (void) dealloc {
-    [[list_ table] setDelegate:nil];
-    [list_ setDataSource:nil];
-	
     if (href_ != nil)
         [href_ release];
     if (hud_ != nil)
@@ -34,11 +31,11 @@
     [super dealloc];
 }
 
-- (int) numberOfSectionsInSectionList:(UISectionList *)list {
+- (int) numberOfSectionsInTableView:(UITableView *)tableView {
     return offset_ == 0 ? 1 : 2;
 }
 
-- (NSString *) sectionList:(UISectionList *)list titleForSection:(int)section {
+- (NSString *) tableView:(UITableView *)tableView titleForHeaderInSection:(int)section {
     switch (section + (offset_ == 0 ? 1 : 0)) {
         case 0: return UCLocalize("ENTERED_BY_USER");
         case 1: return UCLocalize("INSTALLED_BY_PACKAGE");
@@ -47,45 +44,51 @@
     }
 }
 
-- (int) sectionList:(UISectionList *)list rowForSection:(int)section {
-    switch (section + (offset_ == 0 ? 1 : 0)) {
-        case 0: return 0;
-        case 1: return offset_;
+- (int) tableView:(UITableView *)tableView numberOfRowsInSection:(int)section {
+	int count = [sources_ count];
+    switch (section) {
+        case 0: return (offset_ == 0 ? count : offset_);
+        case 1: return count - offset_;
 			
 			_nodefault
     }
 }
 
-- (int) numberOfRowsInTable:(UITable *)table {
-    return [sources_ count];
+- (Source *) sourceAtIndexPath:(NSIndexPath *)indexPath {
+	unsigned idx = 0;
+	switch (indexPath.section) {
+		case 0: idx = indexPath.row; break;
+		case 1: idx = indexPath.row + offset_; break;
+		
+			_nodefault
+	}
+	return [sources_ objectAtIndex:idx];
 }
 
-- (float) table:(UITable *)table heightForRow:(int)row {
-    Source *source = [sources_ objectAtIndex:row];
+- (CGFloat) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
+    Source *source = [self sourceAtIndexPath:indexPath];
     return [source description] == nil ? 56 : 73;
 }
 
-- (UITableCell *) table:(UITable *)table cellForRow:(int)row column:(UITableColumn *)col {
-    Source *source = [sources_ objectAtIndex:row];
+- (UITableViewCell *) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    Source *source = [self sourceAtIndexPath:indexPath];
     // XXX: weird warning, stupid selectors ;P
-    return [[[SourceCell alloc] initWithSource:(id)source] autorelease];
-}
-
-- (BOOL) table:(UITable *)table showDisclosureForRow:(int)row {
-    return YES;
-}
-
-- (BOOL) table:(UITable *)table canSelectRow:(int)row {
-    return YES;
-}
-
-- (void) tableRowSelected:(NSNotification*)notification {
-    UITable *table([list_ table]);
-    int row([table selectedRow]);
-    if (row == INT_MAX)
-        return;
+	static NSString *cellIdentifier = @"Cell";
+	SourceCell *cell = (SourceCell *) [tableView dequeueReusableCellWithIdentifier:cellIdentifier];
+	if(cell == nil) 
+		cell = [[[SourceCell alloc] initWithSource:(id)source] autorelease];
+	else
+		[cell setSource:source];
 	
-    Source *source = [sources_ objectAtIndex:row];
+    return cell;
+}
+
+- (int) tableView:(UITableView *)tableView accessoryTypeForRowWithIndexPath:(NSIndexPath *)indexPath {
+    return 1; //UITableViewCellAccessoryDisclosureIndicator?
+}
+
+- (void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    Source *source = [self sourceAtIndexPath:indexPath];
 	
     PackageTable *packages = [[[FilteredPackageTable alloc]
 							   initWithBook:book_
@@ -100,17 +103,13 @@
     [book_ pushPage:packages];
 }
 
-- (BOOL) table:(UITable *)table canDeleteRow:(int)row {
-    Source *source = [sources_ objectAtIndex:row];
+- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath {
+    Source *source = [self sourceAtIndexPath:indexPath];
     return [source record] != nil;
 }
 
-- (void) table:(UITable *)table willSwipeToDeleteRow:(int)row {
-    [[list_ table] setDeleteConfirmationRow:row];
-}
-
-- (void) table:(UITable *)table deleteRow:(int)row {
-    Source *source = [sources_ objectAtIndex:row];
+- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath {
+    Source *source = [self sourceAtIndexPath:indexPath];
     [Sources_ removeObjectForKey:[source key]];
     [delegate_ syncData];
 }
@@ -323,23 +322,11 @@
         database_ = database;
         sources_ = [[NSMutableArray arrayWithCapacity:16] retain];
 		
-        //list_ = [[UITable alloc] initWithFrame:[self bounds]];
-        list_ = [[UISectionList alloc] initWithFrame:[self bounds] showSectionIndex:NO];
-        [list_ setShouldHideHeaderInShortLists:NO];
+        list_ = [[UITableView alloc] initWithFrame:[self bounds] style:UITableViewStylePlain];
 		
         [self addSubview:list_];
         [list_ setDataSource:self];
-		
-        UITableColumn *column = [[UITableColumn alloc]
-								 initWithTitle:UCLocalize("NAME")
-								 identifier:@"name"
-								 width:[self frame].size.width
-								 ];
-		
-        UITable *table = [list_ table];
-        [table setSeparatorStyle:1];
-        [table addTableColumn:column];
-        [table setDelegate:self];
+		[list_ setDelegate:self];
 		
         [self reloadData];
 		
@@ -360,8 +347,10 @@
     _trace();
 	
     int count([sources_ count]);
-    for (offset_ = 0; offset_ != count; ++offset_) {
-        Source *source = [sources_ objectAtIndex:offset_];
+	int i = 0;
+    for (i = 0; i != count; i++) {
+		offset_++;
+        Source *source = [sources_ objectAtIndex:i];
         if ([source record] == nil)
             break;
     }
@@ -402,9 +391,7 @@
 }
 
 - (void) _rightButtonClicked {
-    UITable *table = [list_ table];
-    BOOL editing = [table isRowDeletionEnabled];
-    [table enableRowDeletion:!editing animated:YES];
+    [list_ setEditing:![list_ isEditing] animated:YES];
     [book_ reloadButtonsForPage:self];
 }
 
@@ -413,15 +400,15 @@
 }
 
 - (NSString *) leftButtonTitle {
-    return [[list_ table] isRowDeletionEnabled] ? UCLocalize("ADD") : nil;
+    return [list_ isEditing] ? UCLocalize("ADD") : nil;
 }
 
 - (id) rightButtonTitle {
-    return [[list_ table] isRowDeletionEnabled] ? UCLocalize("DONE") : UCLocalize("EDIT");
+    return [list_ isEditing] ? UCLocalize("DONE") : UCLocalize("EDIT");
 }
 
 - (UINavigationButtonStyle) rightButtonStyle {
-    return [[list_ table] isRowDeletionEnabled] ? UINavigationButtonStyleHighlighted : UINavigationButtonStyleNormal;
+    return [list_ isEditing] ? UINavigationButtonStyleHighlighted : UINavigationButtonStyleNormal;
 }
 
 @end

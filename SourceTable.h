@@ -3,7 +3,7 @@
 /* Source Table {{{ */
 @interface SourceTable : RVPage {
     _transient Database *database_;
-    UISectionList *list_;
+    UITableView *list_;
     NSMutableArray *sources_;
     UIActionSheet *alert_;
     int offset_;
