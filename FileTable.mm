@@ -12,26 +12,26 @@
     [super dealloc];
 }
 
-- (int) numberOfRowsInTable:(UITable *)table {
+- (int) tableView:(UITableView *)tableView numberOfRowsInSection:(int)section {
     return files_ == nil ? 0 : [files_ count];
 }
 
-- (float) table:(UITable *)table heightForRow:(int)row {
+- (float) tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     return 24;
 }
 
-- (UITableCell *) table:(UITable *)table cellForRow:(int)row column:(UITableColumn *)col reusing:(UITableCell *)reusing {
-    if (reusing == nil) {
-        reusing = [[[UIImageAndTextTableCell alloc] init] autorelease];
+- (UITableViewCell *) tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    static NSString *reuseIdentifier = @"Cell";
+	
+	UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:reuseIdentifier];
+	if (cell == nil) {
+		cell = [[[UITableViewCell alloc] initWithFrame:CGRectZero reuseIdentifier:reuseIdentifier] autorelease];
         UIFont *font = [UIFont systemFontOfSize:16];
-        [[(UIImageAndTextTableCell *)reusing titleTextLabel] setFont:font];
+        [cell setFont:font];
     }
-    [(UIImageAndTextTableCell *)reusing setTitle:[files_ objectAtIndex:row]];
-    return reusing;
-}
-
-- (BOOL) table:(UITable *)table canSelectRow:(int)row {
-    return NO;
+    [cell setText:[files_ objectAtIndex:indexPath.row]];
+	[cell setSelectionStyle:0 /*UITableViewCellSelectionStyleNone*/];
+    return cell;
 }
 
 - (id) initWithBook:(RVBook *)book database:(Database *)database {
@@ -40,20 +40,11 @@
 		
         files_ = [[NSMutableArray arrayWithCapacity:32] retain];
 		
-        list_ = [[UITable alloc] initWithFrame:[self bounds]];
+        list_ = [[UITableView alloc] initWithFrame:[self bounds]];
         [self addSubview:list_];
-		
-        UITableColumn *column = [[[UITableColumn alloc]
-								  initWithTitle:UCLocalize("NAME")
-								  identifier:@"name"
-								  width:[self frame].size.width
-								  ] autorelease];
-		
+				
         [list_ setDataSource:self];
-        [list_ setSeparatorStyle:1];
-        [list_ addTableColumn:column];
         [list_ setDelegate:self];
-        [list_ setReusesTableCells:YES];
     } return self;
 }
 

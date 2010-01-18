@@ -6,7 +6,7 @@
     Package *package_;
     NSString *name_;
     NSMutableArray *files_;
-    UITable *list_;
+    UITableView *list_;
 }
 
 - (id) initWithBook:(RVBook *)book database:(Database *)database;
