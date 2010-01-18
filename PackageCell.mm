@@ -177,7 +177,7 @@
     if (!selected)
         UISetColor(commercial_ ? Purple_ : Black_);
     [name_ drawAtPoint:CGPointMake(48, 8) forWidth:(placard_ == nil ? 240 : 214) withFont:Font18Bold_ ellipsis:2];
-    [source_ drawAtPoint:CGPointMake(58, 29) forWidth:225 withFont:Font12_ ellipsis:2];
+    [source_ drawAtPoint:CGPointMake(48, 29) forWidth:225 withFont:Font12_ ellipsis:2];
 	
     if (!selected)
         UISetColor(commercial_ ? Purplish_ : Gray_);
