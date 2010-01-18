@@ -4,9 +4,6 @@
 @class Package;
 @class Source;
 
-@interface NSObject (ProgressDelegate)
-@end
-
 @protocol ProgressDelegate
 - (void) setProgressError:(NSString *)error withTitle:(NSString *)id;
 - (void) setProgressTitle:(NSString *)title;

@@ -13,9 +13,8 @@
 	[alert setTitle:UCLocalize("ABOUT_CYDIA")];
 	[alert addButtonWithTitle:UCLocalize("CLOSE")];
 	[alert setCancelButtonIndex:0];
-	[alert setTag:5432];
     [alert setMessage:
-	 @"Copyright (C) 2008-2009\n"
+	 @"Copyright \u00A9 2008-2010\n"
 	 "Jay Freeman (saurik)\n"
 	 "saurik@saurik.com\n"
 	 "http://www.saurik.com/\n"
