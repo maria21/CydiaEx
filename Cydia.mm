@@ -1,7 +1,15 @@
 #import "Cydia.h"
+
 #import "SettingsView.h"
 #import "ConfirmationView.h"
 #import "SignatureView.h"
+#import "ProgressView.h"
+
+#import "SectionsView.h"
+#import "PackageView.h"
+#import "ChangesView.h"
+#import "ManageView.h"
+#import "SearchView.h"
 
 #import "SourceTable.h"
 #import "FileTable.h"
