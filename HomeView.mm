@@ -2,15 +2,6 @@
 
 @implementation HomeView
 
-- (void) alertSheet:(UIActionSheet *)sheet buttonClicked:(int)button {
-    NSString *context([sheet context]);
-	
-    if ([context isEqualToString:@"about"])
-        [sheet dismiss];
-    else
-        [super alertSheet:sheet buttonClicked:button];
-}
-
 - (void) _setMoreHeaders:(NSMutableURLRequest *)request {
     [super _setMoreHeaders:request];
     if (ChipID_ != nil)
@@ -18,15 +9,12 @@
 }
 
 - (void) _leftButtonClicked {
-    UIActionSheet *sheet = [[[UIActionSheet alloc]
-							 initWithTitle:UCLocalize("ABOUT_CYDIA")
-							 buttons:[NSArray arrayWithObjects:UCLocalize("CLOSE"), nil]
-							 defaultButtonIndex:0
-							 delegate:self
-							 context:@"about"
-							 ] autorelease];
-	
-    [sheet setBodyText:
+    UIAlertView *alert = [[[UIAlertView alloc] init] autorelease];
+	[alert setTitle:UCLocalize("ABOUT_CYDIA")];
+	[alert addButtonWithTitle:UCLocalize("CLOSE")];
+	[alert setCancelButtonIndex:0];
+	[alert setTag:5432];
+    [alert setMessage:
 	 @"Copyright (C) 2008-2009\n"
 	 "Jay Freeman (saurik)\n"
 	 "saurik@saurik.com\n"
@@ -41,7 +29,7 @@
 	 "http://www.ccs.ucsb.edu/"
 	 ];
 	
-    [sheet popupAlertAnimated:YES];
+    [alert show];
 }
 
 - (NSString *) leftButtonTitle {
